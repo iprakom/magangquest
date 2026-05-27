@@ -18,6 +18,8 @@ class User extends Authenticatable
         'password',
         'role',
         'onboarding_status',
+        'google_id',
+        'avatar',
         'intern_type',
         'start_date',
         'end_date',

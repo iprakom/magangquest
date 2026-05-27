@@ -1,7 +1,14 @@
 <?php
 
+use App\Http\Controllers\GoogleAuthController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -10,15 +17,24 @@ Route::get('/', function () {
     ]);
 });
 
-// TODO: Auth routes (Google SSO)
-// Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('auth.google');
-// Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback']);
+// Auth routes (Google SSO)
+Route::get('/auth/google', [GoogleAuthController::class, 'redirectToGoogle'])->name('auth.google');
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
 
-// TODO: Protected routes (require auth)
-// Route::middleware(['auth', 'verified'])->group(function () {
-//     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-//     Route::resource('/quests', QuestController::class);
-// });
+// Guest login page
+Route::middleware('guest')->group(function () {
+    Route::get('/login', fn () => Inertia::render('Login'))->name('login');
+});
+
+// Onboarding routes (require auth, pending status)
+Route::middleware(['auth', 'onboarding.pending'])->group(function () {
+    Route::get('/onboarding', fn () => Inertia::render('Onboarding'))->name('onboarding');
+});
+
+// Protected routes (require auth + active onboarding)
+Route::middleware(['auth', 'onboarding.active'])->group(function () {
+    Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
+});
 
 // TODO: API routes
 // Route::prefix('api')->group(function () {

@@ -12,16 +12,8 @@ use Illuminate\Support\Str;
  */
 class UserFactory extends Factory
 {
-    /**
-     * The current password being used by the factory.
-     */
     protected static ?string $password;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         return [
@@ -30,16 +22,49 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'role' => 'player',
+            'onboarding_status' => 'active',
+            'intern_type' => 'mahasiswa',
+            'start_date' => now()->subMonths(3),
+            'end_date' => now()->addMonths(3),
+            'is_critical_zone' => false,
+            'is_grace_period' => false,
+            'google_id' => null,
+            'avatar' => null,
         ];
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
     public function unverified(): static
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'admin',
+            'onboarding_status' => 'active',
+            'intern_type' => 'profesional',
+        ]);
+    }
+
+    public function mentor(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'mentor',
+            'onboarding_status' => 'active',
+            'intern_type' => 'profesional',
+        ]);
+    }
+
+    public function player(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'player',
+            'onboarding_status' => 'active',
+            'intern_type' => 'mahasiswa',
         ]);
     }
 }
