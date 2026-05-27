@@ -34,9 +34,5 @@ Route::middleware(['auth', 'onboarding.pending'])->group(function () {
 // Protected routes (require auth + active onboarding)
 Route::middleware(['auth', 'onboarding.active'])->group(function () {
     Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
+    Route::get('/quests', fn () => Inertia::render('Quest/Index'))->name('quests');
 });
-
-// TODO: API routes
-// Route::prefix('api')->group(function () {
-//     Route::apiResource('/quests', QuestApiController::class);
-// });
