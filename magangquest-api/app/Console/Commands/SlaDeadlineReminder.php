@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\QuestAssignment;
 use App\Models\User;
-use App\Mail\SlaDeadlineReminder;
+use App\Mail\SlaDeadlineReminderMail;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -67,7 +67,7 @@ class SlaDeadlineReminder extends Command
         // Calculate hours remaining
         $hoursRemaining = now()->diffInHours($assignment->sla_deadline);
 
-        Mail::to($mentor->email)->send(new SlaDeadlineReminder(
+        Mail::to($mentor->email)->send(new SlaDeadlineReminderMail(
             $assignment->quest->title,
             $intern->name,
             "{$hoursRemaining} jam",
