@@ -450,7 +450,7 @@ function calculateWorkingDaysRemaining() {
   // Start from tomorrow since today doesn't count as a full working day remaining
   current.setDate(current.getDate() + 1)
 
-  const holidayDates = props.holidays.map(h => {
+  const holidayDates = holidays.value.map(h => {
     const d = new Date(h.date)
     d.setHours(0, 0, 0, 0)
     return d.getTime()
@@ -479,7 +479,7 @@ function calculateWorkingDaysPast(today, end) {
   const current = new Date(end)
   current.setDate(current.getDate() + 1) // Start from day after end
 
-  const holidayDates = props.holidays.map(h => {
+  const holidayDates = holidays.value.map(h => {
     const d = new Date(h.date)
     d.setHours(0, 0, 0, 0)
     return d.getTime()
