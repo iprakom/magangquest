@@ -86,4 +86,24 @@ class GoogleAuthController extends Controller
 
         return redirect()->intended('/dashboard');
     }
+
+    /**
+     * Verify Google OAuth configuration
+     * GET /api/auth/google/config
+     */
+    public function verifyConfig()
+    {
+        $clientId = config('services.google.client_id');
+        $clientSecret = config('services.google.client_secret');
+        $redirectUri = config('services.google.redirect');
+
+        $isConfigured = !empty($clientId) && !empty($clientSecret);
+
+        return response()->json([
+            'configured' => $isConfigured,
+            'client_id' => $clientId ? '***' . substr($clientId, -12) : null,
+            'client_secret' => $clientSecret ? '***' . substr($clientSecret, -8) : null,
+            'redirect_uri' => $redirectUri,
+        ]);
+    }
 }

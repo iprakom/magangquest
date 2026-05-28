@@ -104,7 +104,7 @@ class QuestAssignmentController extends Controller
         }
 
         // WIP Slot check
-        $slotWeight = $quest->getSlotWeight($quest->priority);
+        $slotWeight = Quest::getSlotWeight($quest->priority);
         $availableSlots = $user->getAvailableSlots();
 
         if ($availableSlots < $slotWeight) {

@@ -18,9 +18,25 @@ class QuestController extends Controller
         $query = Quest::with(['creator', 'assignments'])
             ->withCount(['assignments as assignments_count']);
 
-        // Filter by type
+        // Filter by type (supports single type or array of types: assigned, bounty, usulan)
         if ($request->has('type') && $request->type) {
-            $query->where('type', $request->type);
+            $types = is_array($request->type) ? $request->type : explode(',', $request->type);
+            $query->whereIn('type', $types);
+        }
+
+        // Also support filter as separate boolean flags for assigned/bounty/usulan
+        $typeFilters = [];
+        if ($request->boolean('assigned')) {
+            $typeFilters[] = Quest::TYPE_ASSIGNED;
+        }
+        if ($request->boolean('bounty')) {
+            $typeFilters[] = Quest::TYPE_BOUNTY;
+        }
+        if ($request->boolean('usulan')) {
+            $typeFilters[] = Quest::TYPE_USULAN;
+        }
+        if (!empty($typeFilters)) {
+            $query->whereIn('type', $typeFilters);
         }
 
         // Filter by difficulty/priority
