@@ -54,9 +54,9 @@ class ProfileController extends Controller
         // Get streak
         $streak = $user->streak;
         
-        // Get perfect days
+        // Get perfect days (days with streak bonus)
         $perfectDays = PointTransaction::where('user_id', $user->id)
-            ->where('reference', PointTransaction::REF_PERFECT_DAY)
+            ->where('reference', PointTransaction::REF_STREAK_BONUS)
             ->count();
 
         // Calculate working days remaining
