@@ -455,9 +455,8 @@ async function handleAccept(quest) {
 }
 
 function handleViewDetails(quest) {
-  selectedQuest.value = quest
-  selectedQuestUserAssignment.value = getUserAssignment(quest.id)
-  showDetailsModal.value = true
+  // Navigate to quest detail page instead of showing modal
+  window.location.href = `/quests/${quest.id}`
 }
 
 async function handleCreateQuest() {

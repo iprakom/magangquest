@@ -10,6 +10,7 @@ Artisan::command('inspire', function () {
 
 // Schedule cron jobs for automated game mechanics
 Schedule::command('quests:auto-approve')->everyFifteenMinutes();
+Schedule::command('quests:sla-reminder')->hourly();
 Schedule::command('endgame:check')->daily();
 Schedule::command('streaks:calculate')->dailyAt('00:00');
 Schedule::command('perfectday:check')->dailyAt('23:59');

@@ -7,8 +7,10 @@ use App\Models\PointTransaction;
 use App\Models\Quest;
 use App\Models\QuestAssignment;
 use App\Models\User;
+use App\Mail\GracePeriodStarted;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class CheckEndgamePhase extends Command
 {
@@ -183,6 +185,13 @@ class CheckEndgamePhase extends Command
 
         // Apply initial grace period penalty
         $this->applyGracePeriodPenalty($user);
+
+        // Send grace period started email
+        Mail::to($user->email)->send(new GracePeriodStarted(
+            $user->name,
+            self::GRACE_PENALTY_PER_DAY,
+            $user->grace_period_started_at->toDateTimeString()
+        ));
 
         $this->warn("User {$user->id} entered GRACE PERIOD - {$user->grace_period_started_at}");
         Log::warning("User {$user->id} entered grace period at H-0 with active quests");

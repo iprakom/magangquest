@@ -23,6 +23,7 @@ class QuestAssignment extends Model
         'validated_at',
         'mentor_notes',
         'slot_consumed',
+        'sla_deadline',
     ];
 
     protected $casts = [
@@ -32,6 +33,7 @@ class QuestAssignment extends Model
         'submitted_at' => 'datetime',
         'validated_at' => 'datetime',
         'slot_consumed' => 'integer',
+        'sla_deadline' => 'datetime',
     ];
 
     // Status constants (from PRD)

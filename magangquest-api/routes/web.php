@@ -50,6 +50,7 @@ Route::middleware(['auth', 'onboarding.pending'])->group(function () {
 Route::middleware(['auth', 'onboarding.active'])->group(function () {
     Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
     Route::get('/quests', fn () => Inertia::render('Quest/Index'))->name('quests');
+    Route::get('/quests/{id}', fn ($id) => Inertia::render('QuestDetail'))->name('quests.show');
     Route::get('/quest-logbook', fn () => Inertia::render('QuestLogbook'))->name('quest-logbook');
     Route::get('/profile', fn () => Inertia::render('Profile'))->name('profile');
     Route::get('/leaderboard', fn () => Inertia::render('Leaderboard'))->name('leaderboard');

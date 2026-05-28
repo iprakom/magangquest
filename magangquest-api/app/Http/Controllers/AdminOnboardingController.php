@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\PointTransaction;
 use App\Models\SystemSetting;
+use App\Mail\OnboardingApproved;
+use App\Mail\OnboardingRejected;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Mail;
 
 class AdminOnboardingController extends Controller
 {
@@ -87,6 +90,9 @@ class AdminOnboardingController extends Controller
             notes: 'Onboarding bonus for completing document validation'
         );
 
+        // Send approval email
+        Mail::to($user->email)->send(new OnboardingApproved($user->name, $bonusPoints));
+
         return response()->json([
             'success' => true,
             'message' => 'User approved successfully',
@@ -113,6 +119,8 @@ class AdminOnboardingController extends Controller
             'reason' => 'required|string|max:500',
         ]);
 
+        $reason = $request->reason;
+
         // Reset to restricted status and clear document
         if ($user->document_path && Storage::disk('public')->exists($user->document_path)) {
             Storage::disk('public')->delete($user->document_path);
@@ -122,9 +130,12 @@ class AdminOnboardingController extends Controller
         $user->onboarding_status = User::ONBOARDING_RESTRICTED;
         $user->save();
 
+        // Send rejection email
+        Mail::to($user->email)->send(new OnboardingRejected($user->name, $reason));
+
         return response()->json([
             'success' => true,
-            'message' => 'User rejected. Reason: ' . $request->reason,
+            'message' => 'User rejected. Reason: ' . $reason,
         ]);
     }
 }

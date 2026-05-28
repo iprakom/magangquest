@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Inertia\Middleware as InertiaMiddleware;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class HandleInertiaRequests extends InertiaMiddleware
 {
@@ -40,6 +41,9 @@ class HandleInertiaRequests extends InertiaMiddleware
     {
         return [
             'errors' => Inertia::always($this->resolveValidationErrors($request)),
+            'auth' => Auth::user() ? [
+                'user' => Auth::user()->only(['id', 'name', 'email', 'role', 'nip', 'room', 'unit_kerja', 'start_date', 'end_date', 'intern_type']),
+            ] : null,
         ];
     }
 

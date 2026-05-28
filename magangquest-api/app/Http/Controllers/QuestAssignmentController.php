@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Quest;
 use App\Models\QuestAssignment;
+use App\Models\User;
+use App\Mail\QuestSubmitted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class QuestAssignmentController extends Controller
 {
@@ -218,6 +221,20 @@ class QuestAssignmentController extends Controller
 
         $assignment->update($updateData);
         $assignment->load(['quest', 'assignedBy', 'validatedBy']);
+
+        // Send QuestSubmitted email to mentor when intern submits for review
+        if ($newStatus === QuestAssignment::STATUS_IN_REVIEW) {
+            $intern = $assignment->user;
+            $mentor = User::find($intern->mentor_id);
+
+            if ($mentor) {
+                Mail::to($mentor->email)->send(new QuestSubmitted(
+                    $intern->name,
+                    $assignment->quest->title,
+                    $assignment->submitted_at?->toDateTimeString()
+                ));
+            }
+        }
 
         return response()->json([
             'success' => true,

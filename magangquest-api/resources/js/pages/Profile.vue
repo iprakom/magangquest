@@ -36,9 +36,12 @@
               <div class="text-center sm:text-left flex-1">
                 <h2 class="text-2xl font-bold text-white">{{ user.name }}</h2>
                 <p class="text-slate-400">{{ user.email }}</p>
-                <div class="flex items-center gap-3 mt-2 justify-center sm:justify-start">
+                <div class="flex items-center gap-3 mt-2 justify-center sm:justify-start flex-wrap">
                   <LevelBadge :level="stats.level" size="md" />
                   <StreakBadge :streak="streak" />
+                  <span v-if="user.intern_type" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-600/20 text-purple-400 capitalize">
+                    {{ formatInternType(user.intern_type) }}
+                  </span>
                 </div>
               </div>
               <div class="text-center sm:text-right">
@@ -50,7 +53,7 @@
             </div>
 
             <!-- Quick Stats Row -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
               <div class="bg-slate-700/50 rounded-lg p-4 text-center">
                 <p class="text-3xl font-bold text-white">{{ stats.current_xp?.toLocaleString() || 0 }}</p>
                 <p class="text-slate-400 text-sm">Total XP</p>
@@ -60,12 +63,18 @@
                 <p class="text-slate-400 text-sm">Level</p>
               </div>
               <div class="bg-slate-700/50 rounded-lg p-4 text-center">
-                <p class="text-3xl font-bold text-white">{{ completedQuests }}</p>
+                <p class="text-3xl font-bold text-green-400">{{ completedQuests }}</p>
                 <p class="text-slate-400 text-sm">Completed</p>
               </div>
               <div class="bg-slate-700/50 rounded-lg p-4 text-center">
                 <p class="text-3xl font-bold text-orange-400">{{ streak }}</p>
                 <p class="text-slate-400 text-sm">Day Streak</p>
+              </div>
+              <div class="bg-slate-700/50 rounded-lg p-4 text-center">
+                <div class="flex flex-col items-center">
+                  <p class="text-2xl font-bold text-cyan-400">{{ wipSlots.used }}/{{ wipSlots.max }}</p>
+                  <p class="text-slate-400 text-xs">Active Slots</p>
+                </div>
               </div>
             </div>
           </div>
@@ -105,13 +114,21 @@
               <span class="text-slate-400">Role</span>
               <span class="text-white capitalize">{{ user.role }}</span>
             </div>
-            <div v-if="user.department" class="flex items-center justify-between py-2 border-b border-slate-700">
-              <span class="text-slate-400">Department</span>
-              <span class="text-white">{{ user.department }}</span>
+            <div v-if="user.nip" class="flex items-center justify-between py-2 border-b border-slate-700">
+              <span class="text-slate-400">NIP</span>
+              <span class="text-white font-mono">{{ user.nip }}</span>
             </div>
-            <div v-if="user.institution" class="flex items-center justify-between py-2 border-b border-slate-700">
-              <span class="text-slate-400">Institution</span>
-              <span class="text-white">{{ user.institution }}</span>
+            <div v-if="user.unit_kerja" class="flex items-center justify-between py-2 border-b border-slate-700">
+              <span class="text-slate-400">Unit Kerja</span>
+              <span class="text-white">{{ user.unit_kerja }}</span>
+            </div>
+            <div v-if="user.intern_type" class="flex items-center justify-between py-2 border-b border-slate-700">
+              <span class="text-slate-400">Intern Type</span>
+              <span class="text-white capitalize">{{ formatInternType(user.intern_type) }}</span>
+            </div>
+            <div v-if="user.room" class="flex items-center justify-between py-2 border-b border-slate-700">
+              <span class="text-slate-400">Room</span>
+              <span class="text-white">{{ user.room }}</span>
             </div>
             <div v-if="user.start_date" class="flex items-center justify-between py-2 border-b border-slate-700">
               <span class="text-slate-400">Start Date</span>
@@ -165,6 +182,22 @@
               ></div>
             </div>
           </div>
+
+          <!-- Slot Usage -->
+          <div class="mt-6">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-slate-400 text-sm">Slot Usage</span>
+              <span class="text-white font-medium">{{ wipSlots.used }} / {{ wipSlots.max }} slots</span>
+            </div>
+            <div class="w-full h-3 bg-slate-700 rounded-full overflow-hidden">
+              <div
+                class="h-full rounded-full transition-all duration-500"
+                :class="slotUsageClass"
+                :style="{ width: `${slotUsagePercent}%` }"
+              ></div>
+            </div>
+            <p class="text-slate-500 text-xs mt-1">{{ wipSlots.available }} slots available</p>
+          </div>
         </div>
 
         <!-- Perfect Days Section -->
@@ -204,6 +237,7 @@ const streak = ref(0)
 const user = computed(() => userStore.user || {})
 const stats = computed(() => userStore.stats || {})
 const assignments = computed(() => questStore.assignments)
+const wipSlots = computed(() => questStore.wipSlots || { used: 0, max: 16, available: 16 })
 
 const completedQuests = computed(() => {
   return questStore.assignments.filter(a => a.status === 'approved').length
@@ -233,6 +267,20 @@ const successRateClass = computed(() => {
   return 'bg-red-500'
 })
 
+const slotUsagePercent = computed(() => {
+  const max = wipSlots.value.max || 16
+  if (max === 0) return 0
+  return Math.min(100, Math.round((wipSlots.value.used / max) * 100))
+})
+
+const slotUsageClass = computed(() => {
+  const percent = slotUsagePercent.value
+  if (percent >= 100) return 'bg-red-500'
+  if (percent >= 75) return 'bg-yellow-500'
+  if (percent >= 50) return 'bg-blue-500'
+  return 'bg-green-500'
+})
+
 function getInitials(name) {
   if (!name) return '?'
   return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
@@ -245,6 +293,15 @@ function formatDate(dateStr) {
     month: 'long',
     day: 'numeric',
   })
+}
+
+function formatInternType(type) {
+  const typeMap = {
+    'sma_smk': 'SMA/SMK',
+    'mahasiswa': 'Mahasiswa',
+    'profesional': 'Profesional',
+  }
+  return typeMap[type] || type || 'N/A'
 }
 
 async function loadProfile() {

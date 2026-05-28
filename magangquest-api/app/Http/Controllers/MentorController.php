@@ -5,9 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Quest;
 use App\Models\QuestAssignment;
+use App\Models\PointTransaction;
+use App\Mail\QuestAssigned;
+use App\Mail\QuestSubmitted;
+use App\Mail\QuestApproved;
+use App\Mail\QuestNeedsRevision;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class MentorController extends Controller
 {
@@ -209,6 +215,13 @@ class MentorController extends Controller
 
         $assignment->load(['quest', 'user', 'assignedBy']);
 
+        // Send quest assigned email to intern
+        Mail::to($targetUser->email)->send(new QuestAssigned(
+            $targetUser->name,
+            $quest->title,
+            isset($validated['sla_deadline']) ? $validated['sla_deadline'] : null
+        ));
+
         return response()->json([
             'success' => true,
             'message' => 'Quest assigned successfully',
@@ -353,6 +366,21 @@ class MentorController extends Controller
         }
 
         $assignment->save();
+
+        // Send email notification to intern
+        if ($validated['action'] === 'approve') {
+            Mail::to($assignment->user->email)->send(new QuestApproved(
+                $assignment->user->name,
+                $assignment->quest->title,
+                100
+            ));
+        } else {
+            Mail::to($assignment->user->email)->send(new QuestNeedsRevision(
+                $assignment->user->name,
+                $assignment->quest->title,
+                $validated['mentor_notes'] ?? 'Tidak ada catatan'
+            ));
+        }
 
         return response()->json([
             'success' => true,
