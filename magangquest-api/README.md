@@ -1,58 +1,307 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Magang Quest - Gamified Internship Logbook
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistem logbook magang bergamifikasi untuk BPS Pusdiklat. Sistem ini mengubah pengalaman magang menjadi petualangan quest, di mana peserta magang menyelesaikan tugas, mendapatkan XP, naik level, dan bersaing di leaderboard.
 
-## About Laravel
+## Tech Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Backend:** Laravel 13.8 (PHP 8.3+)
+- **Frontend:** Vue 3 + Inertia.js
+- **Styling:** Tailwind CSS v4
+- **Database:** MySQL 8.0+
+- **Authentication:** Google OAuth (Laravel Socialite)
+- **Server:** Nginx
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Fitur
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Sistem ini mencakup 14 user stories:
 
-## Learning Laravel
+### Onboarding
+1. **Pendaftaran & Login Google SSO** - Peserta magang login menggunakan akun Google BPS
+2. **Input Data Pribadi** - Pengisian NIP, unit kerja, tanggal mulai/selesai magang
+3. **Upload Dokumen** - Upload dokumen pendukung (surat pengantar, dll)
+4. **Validasi Admin** - Admin memvalidasi data peserta baru
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Quest System
+5. **Quest Assignment** - Peserta mendapatkan quest dari admin/mentor
+6. **WIP (Work In Progress) Slots** - Slot quest yang sedang dikerjakan (batas maksimal)
+7. **Quest Progress Submission** - Pengisian progress logbook harian
+8. **Mentor Review** - Mentor review dan validasi progress quest
+9. **Bounty System** - Quest tambahan yang bisa diklaim peserta
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Gamification
+10. **Point & XP System** - Mendapatkan XP dari setiap quest yang diselesaikan
+11. **Level System** - Naik level berdasarkan total XP
+12. **Leaderboard** - Ranking peserta magang berdasarkan XP
+13. **Nyawa (Lives) System** - Sistem nyawa untuk quest yang terlambat
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### Endgame
+14. **Endgame Phase Check** - Automatis mengaktifkan fase endgame saat masa magang hampir berakhir
 
-## Agentic Development
+## Requirements
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+- PHP 8.3+
+- Node.js 18+
+- MySQL 8.0+
+- Composer 2.x
+- Nginx (untuk production)
+
+## Local Development Setup
+
+### 1. Clone Repository
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone <repository-url>
+cd magangquest-api
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 2. Install Dependencies
 
-## Contributing
+```bash
+composer install
+npm install
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 3. Setup Environment
 
-## Code of Conduct
+```bash
+cp .env.example .env
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Edit file `.env` dan setup database:
 
-## Security Vulnerabilities
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=magangquest
+DB_USERNAME=root
+DB_PASSWORD=your_password
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 4. Generate Key & Run Migration
+
+```bash
+php artisan key:generate
+php artisan migrate
+```
+
+### 5. Run Development Server
+
+```bash
+php artisan serve
+```
+
+Buka terminal lain dan jalankan Vite dev server:
+
+```bash
+npm run dev
+```
+
+Aplikasi akan tersedia di `http://localhost:8000`
+
+## Deployment to VPS
+
+Server: Ubuntu, IP: 43.156.90.61
+
+### 1. Build Frontend Assets
+
+```bash
+npm run build
+```
+
+### 2. Sync Built Assets to VPS
+
+```bash
+rsync -avz --delete public/build/ magangquest-vps:/var/www/magangquest/magangquest-api/public/build/
+```
+
+### 3. Sync Application Files
+
+```bash
+rsync -avz app/ routes/ magangquest-vps:/var/www/magangquest/magangquest-api/
+```
+
+### 4. Clear Cache on VPS
+
+```bash
+ssh magangquest-vps "cd /var/www/magangquest/magangquest-api && php artisan view:clear && php artisan config:clear && php artisan route:clear"
+```
+
+### 5. Fix Storage Permissions
+
+```bash
+ssh magangquest-vps "sudo chown -R www-data:www-data storage/ bootstrap/cache/"
+```
+
+### 6. Restart PHP-FPM
+
+```bash
+ssh magangquest-vps "sudo systemctl restart php8.3-fpm"
+```
+
+## Cron Jobs (Production)
+
+Tambahkan cron job berikut di server VPS:
+
+```bash
+# Run Laravel scheduler every minute
+* * * * * cd /var/www/magangquest/magangquest-api && php artisan schedule:run >> /dev/null 2>&1
+
+# Check endgame phases daily at midnight
+0 0 * * * php /var/www/magangquest/magangquest-api/artisan endgame:check
+
+# Auto-approve overdue quests daily at midnight
+0 0 * * * php /var/www/magangquest/magangquest-api/artisan quests:auto-approve
+```
+
+## SSL (Let's Encrypt)
+
+```bash
+sudo certbot --nginx -d magangquest.domain.com
+```
+
+## Useful Commands
+
+### Set Admin User
+
+```bash
+php artisan admin:set user@example.com
+```
+
+### Check Endgame Phases
+
+```bash
+php artisan endgame:check
+```
+
+### Auto-Approve Overdue Quests
+
+```bash
+php artisan quests:auto-approve
+```
+
+## API Endpoints
+
+### Onboarding (Auth + Web Session)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/onboarding/status` | Check onboarding status |
+| POST | `/api/onboarding/submit` | Submit personal info |
+| POST | `/api/onboarding/upload` | Upload documents |
+| POST | `/api/onboarding/validate` | Submit for validation |
+
+### Admin Onboarding
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/onboarding/pending` | Get pending users |
+| GET | `/api/admin/onboarding/all` | Get all users |
+| POST | `/api/admin/onboarding/{userId}/approve` | Approve user |
+| POST | `/api/admin/onboarding/{userId}/reject` | Reject user |
+
+### Quests
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/quests` | List all quests |
+| GET | `/api/quests/bounty` | List bounty quests |
+| GET | `/api/quests/{id}` | Get quest detail |
+| POST | `/api/quests/{id}/claim` | Claim bounty quest |
+
+### Quest Assignments
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/quest-assignments/my` | Get my assignments |
+| GET | `/api/quest-assignments/wip-slots` | Get WIP slots |
+| GET | `/api/quest-assignments/{id}/progress` | Get progress |
+| POST | `/api/quest-assignments/{id}/progress` | Store progress |
+| POST | `/api/quest-assignments/{id}/submit-review` | Submit for review |
+
+### Leaderboard
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/leaderboard` | Get leaderboard |
+| GET | `/api/leaderboard/export` | Export leaderboard CSV |
+
+### Mentor
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/mentor/idle-dashboard` | Get idle dashboard |
+| POST | `/api/mentor/assign` | Assign quest to intern |
+| POST | `/api/mentor/quests` | Create quest |
+| GET | `/api/mentor/interns` | Get intern list |
+| GET | `/api/mentor/pending-validations` | Get pending validations |
+| PUT | `/api/mentor/assignments/{id}/validate` | Validate assignment |
+| PUT | `/api/mentor/assignments/{id}/override-sla` | Override SLA |
+
+### Holidays
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/holidays` | List holidays |
+| GET | `/api/holidays/range` | Get holidays in range |
+
+### System Settings (Admin)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/settings` | Get all settings |
+| GET | `/api/admin/settings/{key}` | Get setting by key |
+| PUT | `/api/admin/settings/{key}` | Update setting |
+
+## Environment Variables
+
+Berikut variabel environment yang diperlukan di file `.env`:
+
+```env
+APP_NAME=MagangQuest
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_URL=http://localhost
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=magangquest
+DB_USERNAME=root
+DB_PASSWORD=your_password
+
+SESSION_DRIVER=database
+SESSION_LIFETIME=120
+
+CACHE_STORE=database
+QUEUE_CONNECTION=database
+
+BROADCAST_CONNECTION=log
+FILESYSTEM_DISK=local
+
+# Google OAuth (Socialite)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_REDIRECT_URI=/auth/google/callback
+```
+
+## Struktur Direktori
+
+```
+magangquest-api/
+├── app/
+│   ├── Console/Commands/     # Artisan commands
+│   ├── Http/Controllers/     # API Controllers
+│   └── Models/               # Eloquent Models
+├── public/build/              # Compiled frontend assets
+├── resources/js/              # Vue 3 components
+├── routes/                     # Route definitions
+├── storage/                    # Storage (logs, uploads)
+├── bootstrap/cache/            # Laravel cache
+└── .env                        # Environment file
+```
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT License
