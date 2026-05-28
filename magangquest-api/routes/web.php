@@ -52,6 +52,7 @@ Route::middleware(['auth', 'onboarding.active'])->group(function () {
     Route::get('/quests', fn () => Inertia::render('Quest/Index'))->name('quests');
     Route::get('/quest-logbook', fn () => Inertia::render('QuestLogbook'))->name('quest-logbook');
     Route::get('/profile', fn () => Inertia::render('Profile'))->name('profile');
+    Route::get('/leaderboard', fn () => Inertia::render('Leaderboard'))->name('leaderboard');
     Route::get('/mentor/dashboard', fn () => Inertia::render('MentorDashboard'))->name('mentor.dashboard');
     Route::get('/mentor/quests/create', fn () => Inertia::render('MentorCreateQuest'))->name('mentor.quests.create');
     Route::get('/mentor/review', fn () => Inertia::render('MentorReview'))->name('mentor.review');
