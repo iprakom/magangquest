@@ -430,7 +430,8 @@ const stats = ref({
   pending_review: 0,
 })
 
-// Calculate working days remaining (same logic as NyawaDisplay)
+// Holidays from page props (default to empty array)
+const holidays = computed(() => props.holidays || [])
 function calculateWorkingDaysRemaining() {
   if (!props.endDate) return null
 
