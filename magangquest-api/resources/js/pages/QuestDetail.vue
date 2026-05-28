@@ -298,6 +298,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { useQuestStore } from '@/stores/quest'
 
 const page = usePage()
 const questStore = useQuestStore()
