@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\AdminOnboardingController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\QuestController;
@@ -94,4 +95,11 @@ Route::middleware(['web', 'auth', 'check_onboarding'])->prefix('mentor')->group(
     Route::get('/pending-validations', [MentorController::class, 'pendingValidations']);
     Route::put('/assignments/{id}/override-sla', [MentorController::class, 'overrideSla']);
     Route::put('/assignments/{id}/validate', [MentorController::class, 'validateAssignment']);
+});
+
+// Profile API routes (require auth)
+Route::middleware(['web', 'auth'])->prefix('')->group(function () {
+    Route::get('/user', [ProfileController::class, 'user']);
+    Route::get('/profile/stats', [ProfileController::class, 'stats']);
+    Route::get('/point-transactions', [ProfileController::class, 'transactions']);
 });

@@ -1,6 +1,12 @@
 import { createApp, h } from 'vue'
 import { createPinia } from 'pinia'
 import { createInertiaApp } from '@inertiajs/vue3'
+import axios from 'axios'
+
+// Make axios globally available
+window.axios = axios
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest'
+axios.defaults.withCredentials = true
 
 // Import the AppLayout
 import AppLayout from '@/layouts/AppLayout.vue'
