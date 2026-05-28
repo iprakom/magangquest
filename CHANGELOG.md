@@ -159,10 +159,42 @@ All notable changes to this project will be documented in this file.
 
 ### New Artisan Commands
 - `admin:set {email}` - Set a user as admin by their email
+- `quests:sla-reminder` - Send SLA deadline reminder emails (scheduled hourly)
+
+### New Mailable Classes
+- `OnboardingApproved` - Email saat pendaftaran disetujui
+- `OnboardingRejected` - Email saat pendaftaran ditolak
+- `QuestAssigned` - Email saat quest baru di-assign
+- `QuestSubmitted` - Email ke mentor saat intern submit quest
+- `QuestApproved` - Email saat quest disetujui (+XP)
+- `QuestNeedsRevision` - Email saat quest perlu revisi
+- `GracePeriodStarted` - Email saat memasuki masa tenggang
+- `SlaDeadlineReminder` - Email reminder SLA deadline
+
+### New Vue Pages & Components
+- `resources/js/layouts/AppLayout.vue` - Shared layout dengan role-based navigation
+- `resources/js/pages/QuestDetail.vue` - Halaman detail quest
+
+### Database Tables
+- `notifications` - Laravel notifications table (migrations created)
 
 ### Database Fields
 - `users.grace_started_at`: date, nullable (grace period tracking)
 - `users.is_grace_period`: boolean, default false
+
+### Role-based Navigation
+- AppLayout.vue dengan conditional menu berdasarkan user role
+- Player: Dashboard, Quest Logbook, Leaderboard, Profile
+- Mentor: + Mentor Dashboard, Create Quest, Review
+- Admin: + Semua menu admin (Onboarding, Holidays, Settings, Leaderboard)
+
+### Profile Page Enhancement
+- Intern Type badge (SMA/SMK, Mahasiswa, Profesional)
+- Active Slots stat
+- Slot Usage progress bar
+
+### Onboarding Upload Fix
+- Storage link created on VPS (documents can now be uploaded)
 
 ---
 
