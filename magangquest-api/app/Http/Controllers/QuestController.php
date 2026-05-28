@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Quest;
+use App\Models\QuestAssignment;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
