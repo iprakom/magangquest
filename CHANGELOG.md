@@ -157,6 +157,9 @@ All notable changes to this project will be documented in this file.
 - `@tailwindcss/vite`: ^4.0.0 (Tailwind CSS v4 integration)
 - `ziggy-js`: ^2.6.2 (route helper for Vue) - installed but not actively used (hardcoded URLs instead)
 
+### New Artisan Commands
+- `admin:set {email}` - Set a user as admin by their email
+
 ### Database Fields
 - `users.grace_started_at`: date, nullable (grace period tracking)
 - `users.is_grace_period`: boolean, default false
