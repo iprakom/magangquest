@@ -17,8 +17,8 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-// Onboarding API routes (require auth)
-Route::middleware(['auth'])->prefix('onboarding')->group(function () {
+// Onboarding API routes (require auth + web session for cookies)
+Route::middleware(['web', 'auth'])->prefix('onboarding')->group(function () {
     Route::get('/status', [OnboardingController::class, 'checkStatus']);
     Route::post('/submit', [OnboardingController::class, 'submitPersonalInfo']);
     Route::post('/upload', [OnboardingController::class, 'uploadDocuments']);
@@ -26,7 +26,7 @@ Route::middleware(['auth'])->prefix('onboarding')->group(function () {
 });
 
 // Admin-only onboarding routes
-Route::middleware(['auth', 'check_onboarding'])->prefix('admin')->group(function () {
+Route::middleware(['web', 'auth', 'check_onboarding'])->prefix('admin')->group(function () {
     Route::get('/onboarding/pending', [AdminOnboardingController::class, 'getPendingUsers']);
     Route::get('/onboarding/all', [AdminOnboardingController::class, 'getAllUsers']);
     Route::post('/onboarding/{userId}/approve', [AdminOnboardingController::class, 'approveUser']);
@@ -34,14 +34,14 @@ Route::middleware(['auth', 'check_onboarding'])->prefix('admin')->group(function
 });
 
 // Quest API routes (require auth + active onboarding)
-Route::middleware(['auth', 'check_onboarding'])->prefix('quests')->group(function () {
+Route::middleware(['web', 'auth', 'check_onboarding'])->prefix('quests')->group(function () {
     Route::get('/', [QuestController::class, 'index']);
     Route::get('/bounty', [QuestController::class, 'bountyList']);
     Route::get('/{id}', [QuestController::class, 'show']);
     Route::post('/{id}/claim', [QuestController::class, 'claimBounty']);
 });
 
-Route::middleware(['auth', 'check_onboarding'])->prefix('quest-assignments')->group(function () {
+Route::middleware(['web', 'auth', 'check_onboarding'])->prefix('quest-assignments')->group(function () {
     Route::get('/my', [QuestAssignmentController::class, 'index']);
     Route::get('/wip-slots', [QuestAssignmentController::class, 'getWipSlots']);
     Route::get('/{id}/progress', [ProgressController::class, 'index']);
@@ -50,7 +50,7 @@ Route::middleware(['auth', 'check_onboarding'])->prefix('quest-assignments')->gr
 });
 
 // Admin-only quest management routes
-Route::middleware(['auth', 'check_onboarding'])->prefix('admin')->group(function () {
+Route::middleware(['web', 'auth', 'check_onboarding'])->prefix('admin')->group(function () {
     Route::post('/quests', [QuestController::class, 'store']);
     Route::put('/quests/{id}', [QuestController::class, 'update']);
     Route::delete('/quests/{id}', [QuestController::class, 'destroy']);
@@ -65,14 +65,14 @@ Route::middleware(['auth', 'check_onboarding'])->prefix('admin')->group(function
 Route::get('/holidays', [HolidayController::class, 'index']);
 Route::get('/holidays/range', [HolidayController::class, 'range']);
 
-Route::middleware(['auth', 'check_onboarding'])->prefix('admin')->group(function () {
+Route::middleware(['web', 'auth', 'check_onboarding'])->prefix('admin')->group(function () {
     Route::post('/holidays', [HolidayController::class, 'store']);
     Route::put('/holidays/{id}', [HolidayController::class, 'update']);
     Route::delete('/holidays/{id}', [HolidayController::class, 'destroy']);
 });
 
 // System settings routes (admin only)
-Route::middleware(['auth', 'check_onboarding'])->prefix('admin')->group(function () {
+Route::middleware(['web', 'auth', 'check_onboarding'])->prefix('admin')->group(function () {
     Route::get('/settings', [SystemSettingController::class, 'index']);
     Route::get('/settings/{key}', [SystemSettingController::class, 'show']);
     Route::put('/settings/{key}', [SystemSettingController::class, 'update']);
@@ -80,13 +80,13 @@ Route::middleware(['auth', 'check_onboarding'])->prefix('admin')->group(function
 });
 
 // Leaderboard routes
-Route::middleware(['auth', 'check_onboarding'])->prefix('leaderboard')->group(function () {
+Route::middleware(['web', 'auth', 'check_onboarding'])->prefix('leaderboard')->group(function () {
     Route::get('/', [LeaderboardController::class, 'index']);
     Route::get('/export', [LeaderboardController::class, 'export']);
 });
 
 // Mentor routes
-Route::middleware(['auth', 'check_onboarding'])->prefix('mentor')->group(function () {
+Route::middleware(['web', 'auth', 'check_onboarding'])->prefix('mentor')->group(function () {
     Route::get('/idle-dashboard', [MentorController::class, 'idleDashboard']);
     Route::post('/assign', [MentorController::class, 'assignQuest']);
     Route::post('/quests', [MentorController::class, 'storeQuest']);
