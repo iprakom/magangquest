@@ -71,8 +71,8 @@ class AutoApproveQuests extends Command
         $assignment->mentor_notes = "Auto-approved: SLA breached by {$workingDaysBreached} working day(s). Mentor did not review within {$this->getSlaDescription()}.";
         $assignment->save();
 
-        // Award points
-        $points = $quest->slot_weight;
+        // Award points: fixed 100 points for auto-approved quests
+        $points = 100;
         PointTransaction::createTransaction(
             $user->id,
             $points,

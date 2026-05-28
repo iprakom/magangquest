@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminOnboardingController;
 use App\Http\Controllers\GoogleAuthController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -38,6 +39,7 @@ Route::middleware(['auth', 'onboarding.pending'])->group(function () {
                 'start_date' => Auth::user()->start_date?->format('Y-m-d'),
                 'end_date' => Auth::user()->end_date?->format('Y-m-d'),
                 'room' => Auth::user()->room,
+                'intern_type' => Auth::user()->intern_type,
             ] : null,
         ]);
     })->name('onboarding');
@@ -48,4 +50,15 @@ Route::middleware(['auth', 'onboarding.pending'])->group(function () {
 Route::middleware(['auth', 'onboarding.active'])->group(function () {
     Route::get('/dashboard', fn () => Inertia::render('Dashboard'))->name('dashboard');
     Route::get('/quests', fn () => Inertia::render('Quest/Index'))->name('quests');
+    Route::get('/mentor/dashboard', fn () => Inertia::render('MentorDashboard'))->name('mentor.dashboard');
+    Route::get('/mentor/quests/create', fn () => Inertia::render('MentorCreateQuest'))->name('mentor.quests.create');
+    Route::get('/mentor/review', fn () => Inertia::render('MentorReview'))->name('mentor.review');
+});
+
+// Admin routes (require auth + active onboarding)
+Route::middleware(['auth', 'onboarding.active'])->prefix('admin')->group(function () {
+    Route::get('/onboarding', [AdminOnboardingController::class, 'index'])->name('admin.onboarding');
+    Route::get('/holidays', fn () => Inertia::render('AdminHolidayCalendar'))->name('admin.holidays');
+    Route::get('/settings', fn () => Inertia::render('AdminSettings'))->name('admin.settings');
+    Route::get('/leaderboard', fn () => Inertia::render('AdminLeaderboard'))->name('admin.leaderboard');
 });

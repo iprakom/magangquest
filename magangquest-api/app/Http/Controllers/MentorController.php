@@ -84,6 +84,9 @@ class MentorController extends Controller
                 'status_color' => $statusColor,
                 'active_assignments' => $intern->questAssignments->count(),
                 'current_streak' => $intern->streak?->current_streak ?? 0,
+                'is_grace_period' => $intern->is_grace_period,
+                'is_critical_zone' => $intern->is_critical_zone,
+                'working_days_remaining' => $intern->getWorkingDaysRemaining(),
             ];
         });
 
@@ -143,11 +146,13 @@ class MentorController extends Controller
             ], 400);
         }
 
-        // Check if user is in critical zone
-        if ($targetUser->is_critical_zone) {
+        // Check if target user is in Critical Zone based on working days
+        if ($targetUser->isInCriticalZone()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot assign new quests to users in critical zone',
+                'message' => 'Tidak bisa assign task baru saat Fase Krusial (H-10 hingga H-0)',
+                'critical_zone' => true,
+                'working_days_remaining' => $targetUser->getWorkingDaysRemaining(),
             ], 400);
         }
 
@@ -315,18 +320,17 @@ class MentorController extends Controller
                     "[Approved] " . $validated['mentor_notes'];
             }
 
-            // Award points for quest completion
-            $questPoints = $assignment->quest->slot_weight * 50; // Points based on quest weight
-            \App\Models\PointTransaction::createTransaction(
+            // Award +100 points for quest completion
+            PointTransaction::createTransaction(
                 $assignment->user_id,
-                $questPoints,
-                \App\Models\PointTransaction::REF_QUEST_APPROVED,
+                100,
+                PointTransaction::REF_QUEST_APPROVED,
                 $assignment->quest_id,
                 $assignment->id,
                 'Quest completed: ' . $assignment->quest->title
             );
 
-            $message = 'Quest approved and points awarded';
+            $message = 'Quest approved and +100 points awarded';
         } else {
             $assignment->status = QuestAssignment::STATUS_REVISE;
             
@@ -335,17 +339,17 @@ class MentorController extends Controller
                     "[Revision Required] " . $validated['mentor_notes'];
             }
 
-            // Apply revise penalty
-            \App\Models\PointTransaction::createTransaction(
+            // Apply revise penalty: -10 points
+            PointTransaction::createTransaction(
                 $assignment->user_id,
-                -20,
-                \App\Models\PointTransaction::REF_REVISE_PENALTY,
+                -10,
+                PointTransaction::REF_REVISE_PENALTY,
                 $assignment->quest_id,
                 $assignment->id,
-                'Quest returned for revision: ' . $validated['mentor_notes']
+                'Quest returned for revision: ' . ($validated['mentor_notes'] ?? 'No notes provided')
             );
 
-            $message = 'Quest returned for revision with -20 point penalty';
+            $message = 'Quest returned for revision with -10 point penalty';
         }
 
         $assignment->save();
@@ -354,6 +358,97 @@ class MentorController extends Controller
             'success' => true,
             'message' => $message,
             'assignment' => $assignment,
+        ]);
+    }
+
+    /**
+     * Create a new quest as mentor (bounty or assigned type)
+     * POST /api/mentor/quests
+     * Mentor or Admin only
+     */
+    public function storeQuest(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user->isMentor() && !$user->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. Mentor or Admin role required.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'type' => 'required|in:bounty,assigned',
+            'priority' => 'required|in:high,mid,low',
+            'due_date' => 'nullable|date|after_or_equal:today',
+        ]);
+
+        // Calculate slot weight based on priority
+        $slotWeight = Quest::getSlotWeight($validated['priority']);
+
+        $quest = Quest::create([
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'type' => $validated['type'],
+            'priority' => $validated['priority'],
+            'slot_weight' => $slotWeight,
+            'start_date' => now(),
+            'due_date' => $validated['due_date'] ?? null,
+            'is_active' => true,
+            'created_by' => $user->id,
+        ]);
+
+        $quest->load(['creator']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Quest created successfully',
+            'quest' => $quest,
+        ], 201);
+    }
+
+    /**
+     * Get list of active interns for mentor dropdown
+     * GET /api/mentor/interns
+     * Mentor or Admin only
+     */
+    public function getInterns()
+    {
+        $user = Auth::user();
+
+        if (!$user->isMentor() && !$user->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. Mentor or Admin role required.',
+            ], 403);
+        }
+
+        $query = User::where('onboarding_status', User::ONBOARDING_ACTIVE)
+            ->where('role', User::ROLE_PLAYER);
+
+        // If mentor, only show their mentees
+        if ($user->isMentor()) {
+            $query->where('mentor_id', $user->id);
+        }
+
+        $interns = $query->get()->map(function ($intern) {
+            return [
+                'id' => $intern->id,
+                'name' => $intern->name,
+                'email' => $intern->email,
+                'room' => $intern->room,
+                'slots' => [
+                    'used' => $intern->getUsedSlots(),
+                    'max' => $intern->getMaxSlotCapacity(),
+                    'available' => $intern->getAvailableSlots(),
+                ],
+            ];
+        });
+
+        return response()->json([
+            'interns' => $interns,
         ]);
     }
 }

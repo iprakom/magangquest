@@ -7,7 +7,7 @@ defineProps({
 })
 
 const loginWithGoogle = () => {
-    window.location.href = route('auth.google')
+    window.location.href = '/auth/google'
 }
 </script>
 

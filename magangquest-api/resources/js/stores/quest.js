@@ -169,9 +169,8 @@ export const useQuestStore = defineStore('quest', {
       this.error = null
 
       try {
-        const response = await axios.post('/api/admin/quest-assignments', {
-          quest_id: questId,
-        })
+        // Use user-facing endpoint for bounty claims
+        const response = await axios.post(`/api/quests/${questId}/claim`)
         this.assignments.unshift(response.data.assignment)
         this.wipSlots = response.data.wip_slots
         this.loading = false
@@ -220,6 +219,62 @@ export const useQuestStore = defineStore('quest', {
         return response.data
       } catch (error) {
         this.error = error.response?.data?.message || 'Failed to fetch WIP slots'
+        throw error
+      }
+    },
+
+    // Add progress entry to an assignment
+    async addProgress(assignmentId, notes, evidenceFile = null) {
+      this.loading = true
+      this.error = null
+
+      try {
+        const formData = new FormData()
+        formData.append('notes', notes)
+        if (evidenceFile) {
+          formData.append('evidence', evidenceFile)
+        }
+
+        const response = await axios.post(
+          `/api/quest-assignments/${assignmentId}/progress`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        )
+
+        this.loading = false
+        return response.data
+      } catch (error) {
+        this.error = error.response?.data?.message || 'Failed to add progress'
+        this.loading = false
+        throw error
+      }
+    },
+
+    // Submit assignment for review
+    async submitForReview(assignmentId) {
+      this.loading = true
+      this.error = null
+
+      try {
+        const response = await axios.post(
+          `/api/quest-assignments/${assignmentId}/submit-review`
+        )
+
+        // Update the assignment in the local state
+        const index = this.assignments.findIndex(a => a.id === assignmentId)
+        if (index !== -1) {
+          this.assignments[index] = response.data.assignment
+        }
+
+        this.loading = false
+        return response.data
+      } catch (error) {
+        this.error = error.response?.data?.message || 'Failed to submit for review'
+        this.loading = false
         throw error
       }
     },

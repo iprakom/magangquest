@@ -103,7 +103,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 
 const fileInput = ref(null)
@@ -210,4 +210,8 @@ const handleUpload = async () => {
         uploading.value = false
     }
 }
+
+onMounted(() => {
+    // Check if user can upload
+})
 </script>

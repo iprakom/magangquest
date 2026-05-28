@@ -10,7 +10,7 @@ createInertiaApp({
     title: (title) => title ? `${title} - Magang Quest` : 'Magang Quest',
     resolve: (name) => {
         const pages = import.meta.glob('./pages/**/*.vue')
-        return pages[`./${name}.vue`]()
+        return pages[`./pages/${name}.vue`]()
     },
     setup({ el, App, props, plugin }) {
         createApp({ render: () => h(App, props) })

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Holiday;
 use App\Models\PointTransaction;
 use App\Models\Quest;
 use App\Models\QuestAssignment;
@@ -14,11 +15,13 @@ class CheckEndgamePhase extends Command
     protected $signature = 'endgame:check';
     protected $description = 'Check and update user status based on endgame phases relative to end_date';
 
-    // Endgame phase thresholds (in days)
+    // Endgame phase thresholds (in working days)
     const CRITICAL_ZONE_DAYS = 10;
     const GRADUATION_DAYS = 0;
     const GRACE_PERIOD_DAYS = 7;
     const FORCE_CLOSE_DAYS = 8;
+    const GRADUATION_BONUS = 200;
+    const GRACE_PENALTY_PER_DAY = 10;
 
     public function handle(): int
     {
@@ -32,15 +35,18 @@ class CheckEndgamePhase extends Command
         $processed = 0;
 
         foreach ($users as $user) {
-            $daysRemaining = $user->getDaysRemaining();
-            
-            if ($daysRemaining === null) {
+            $workingDaysRemaining = $user->getWorkingDaysRemaining();
+
+            if ($workingDaysRemaining === null) {
                 continue;
             }
 
-            $this->processUserEndgamePhase($user, $daysRemaining);
+            $this->processUserEndgamePhase($user, $workingDaysRemaining);
             $processed++;
         }
+
+        // Also process users already in grace period (daily penalty)
+        $this->processGracePeriodPenalties();
 
         $this->info("Endgame check completed. Processed {$processed} users.");
         Log::info("Endgame phase check completed. Processed {$processed} users.");
@@ -48,31 +54,87 @@ class CheckEndgamePhase extends Command
         return Command::SUCCESS;
     }
 
-    protected function processUserEndgamePhase(User $user, int $daysRemaining): void
+    protected function processUserEndgamePhase(User $user, int $workingDaysRemaining): void
     {
         $endDate = $user->end_date;
 
-        // H-10 Critical Zone: When days remaining <= 10 and >= 0
-        if ($daysRemaining <= self::CRITICAL_ZONE_DAYS && $daysRemaining > self::GRADUATION_DAYS) {
+        // H-10 Critical Zone: When working days remaining <= 10 and >= 0
+        if ($workingDaysRemaining <= self::CRITICAL_ZONE_DAYS && $workingDaysRemaining > self::GRADUATION_DAYS) {
             $this->enterCriticalZone($user);
         }
 
-        // H-0 Graduation: When days remaining <= 0 (internship has ended)
-        if ($daysRemaining <= self::GRADUATION_DAYS && $daysRemaining > -self::GRACE_PERIOD_DAYS) {
-            $this->processGraduation($user);
+        // H-0 Graduation: When working days remaining <= 0 (internship has ended)
+        if ($workingDaysRemaining <= self::GRADUATION_DAYS) {
+            // Check if user has any active quests - if so, enter grace period instead of graduating
+            $activeQuestsCount = QuestAssignment::where('user_id', $user->id)
+                ->whereIn('status', [
+                    QuestAssignment::STATUS_ASSIGNED,
+                    QuestAssignment::STATUS_ACTIVE,
+                    QuestAssignment::STATUS_IN_REVIEW,
+                ])
+                ->count();
+
+            if ($activeQuestsCount > 0 && !$user->is_grace_period) {
+                // Has active quests at H-0 → Enter Grace Period
+                $this->enterGracePeriod($user);
+            } else {
+                // No active quests at H-0 → Graduate normally
+                $this->processGraduation($user);
+            }
         }
 
-        // H+7 Grace Period: When today is within 7 days after end_date
-        $gracePeriodEnd = $endDate->copy()->addDays(self::GRACE_PERIOD_DAYS);
-        if (now()->lte($gracePeriodEnd) && $daysRemaining < 0) {
-            $this->processGracePeriod($user);
+        // H+7 Grace Period: When today is within 7 working days after end_date
+        $gracePeriodEnd = $this->getNthWorkingDayAfter($endDate, self::GRACE_PERIOD_DAYS);
+        if (now()->lte($gracePeriodEnd) && $workingDaysRemaining < 0) {
+            // Grace period is active - ensure flags are set
+            if (!$user->is_grace_period) {
+                $this->enterGracePeriod($user);
+            }
         }
 
-        // H+8 Force Close: When today is 8+ days after end_date
-        $forceCloseDate = $endDate->copy()->addDays(self::FORCE_CLOSE_DAYS);
+        // H+8 Force Close: When today is 8+ working days after end_date
+        $forceCloseDate = $this->getNthWorkingDayAfter($endDate, self::FORCE_CLOSE_DAYS);
         if (now()->gt($forceCloseDate)) {
             $this->processForceClose($user);
         }
+    }
+
+    /**
+     * Process daily grace period penalties for all users in grace period
+     */
+    protected function processGracePeriodPenalties(): void
+    {
+        $gracePeriodUsers = User::where('is_grace_period', true)
+            ->where('onboarding_status', '!=', User::ONBOARDING_RESTRICTED)
+            ->whereNotNull('grace_period_started_at')
+            ->get();
+
+        foreach ($gracePeriodUsers as $user) {
+            // Check if penalty already applied today (prevent duplicate)
+            $penaltyAppliedToday = PointTransaction::where('user_id', $user->id)
+                ->where('reference', PointTransaction::REF_GRACE_PENALTY)
+                ->whereDate('created_at', now()->toDateString())
+                ->exists();
+
+            if (!$penaltyAppliedToday) {
+                $this->applyGracePeriodPenalty($user);
+            }
+        }
+    }
+
+    protected function getNthWorkingDayAfter(\Carbon\Carbon $startDate, int $n): \Carbon\Carbon
+    {
+        $current = $startDate->copy();
+        $count = 0;
+
+        while ($count < $n) {
+            $current->addDay();
+            if (Holiday::isWorkingDay($current)) {
+                $count++;
+            }
+        }
+
+        return $current;
     }
 
     protected function enterCriticalZone(User $user): void
@@ -109,26 +171,66 @@ class CheckEndgamePhase extends Command
         }
     }
 
+    /**
+     * Enter grace period - called at H-0 when user has active quests
+     */
+    protected function enterGracePeriod(User $user): void
+    {
+        $user->is_grace_period = true;
+        $user->grace_period_started_at = now();
+        $user->is_critical_zone = false;
+        $user->save();
+
+        // Apply initial grace period penalty
+        $this->applyGracePeriodPenalty($user);
+
+        $this->warn("User {$user->id} entered GRACE PERIOD - {$user->grace_period_started_at}");
+        Log::warning("User {$user->id} entered grace period at H-0 with active quests");
+
+        // Note: We don't freeze quests - user can still work on them during grace period
+    }
+
+    /**
+     * Apply daily grace period penalty
+     */
+    protected function applyGracePeriodPenalty(User $user): void
+    {
+        PointTransaction::createTransaction(
+            $user->id,
+            -self::GRACE_PENALTY_PER_DAY,
+            PointTransaction::REF_GRACE_PENALTY,
+            null,
+            null,
+            'Grace period penalty: -10 poin per day (H+1 to H+7)'
+        );
+
+        $this->info("  Applied grace period penalty of -" . self::GRACE_PENALTY_PER_DAY . " points for user {$user->id}");
+        Log::info("Grace period penalty applied to user {$user->id}");
+    }
+
     protected function processGraduation(User $user): void
     {
+        // Only process if not already in grace period
+        if ($user->is_grace_period) {
+            return;
+        }
+
         $user->onboarding_status = User::ONBOARDING_FROZEN;
         $user->is_critical_zone = false;
         $user->save();
 
         // Award graduation bonus
-        $graduationBonus = 100; // configurable
         PointTransaction::createTransaction(
             $user->id,
-            $graduationBonus,
+            self::GRADUATION_BONUS,
             PointTransaction::REF_GRADUATION_BONUS,
             null,
             null,
-            'Graduation bonus awarded'
+            'Graduation bonus awarded (no active quests at H-0)'
         );
 
-        // Assign graduation badge (log for now - badge system TBD)
-        $this->info("User {$user->id} graduated - badge assigned, points frozen");
-        Log::info("User {$user->id} graduated - awarded {$graduationBonus} bonus points");
+        $this->info("User {$user->id} graduated - +" . self::GRADUATION_BONUS . " bonus points");
+        Log::info("User {$user->id} graduated - awarded " . self::GRADUATION_BONUS . " bonus points");
 
         // Freeze all active quests
         $this->freezeActiveQuests($user);
@@ -154,18 +256,6 @@ class CheckEndgamePhase extends Command
         }
     }
 
-    protected function processGracePeriod(User $user): void
-    {
-        if (!$user->is_grace_period) {
-            $user->is_grace_period = true;
-            $user->grace_period_started_at = now();
-            $user->save();
-
-            $this->info("User {$user->id} entered grace period");
-            Log::info("User {$user->id} entered grace period");
-        }
-    }
-
     protected function processForceClose(User $user): void
     {
         // End internship - mark user as restricted/frozen
@@ -180,7 +270,7 @@ class CheckEndgamePhase extends Command
         // Apply force close penalty if any incomplete quests
         $this->applyForceClosePenalties($user);
 
-        $this->warn("User {$user->id} force closed - internship ended");
+        $this->warn("User {$user->id} force closed - internship ended after H+8");
         Log::warning("User {$user->id} force closed after H+8 grace period");
     }
 

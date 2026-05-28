@@ -190,6 +190,128 @@ class QuestController extends Controller
     }
 
     /**
+     * Get list of available bounty quests
+     * GET /api/quests/bounty
+     */
+    public function bountyList(Request $request)
+    {
+        $user = Auth::user();
+
+        $query = Quest::with(['creator'])
+            ->where('type', Quest::TYPE_BOUNTY)
+            ->where('is_active', true)
+            ->whereDoesntHave('assignments', function ($q) {
+                $q->where('status', '!=', QuestAssignment::STATUS_CANCELLED);
+            });
+
+        $quests = $query->orderBy('created_at', 'desc')->paginate(20);
+
+        // Get user's WIP slot info
+        $wipSlots = [
+            'used' => $user->getUsedSlots(),
+            'max' => $user->getMaxSlotCapacity(),
+            'available' => $user->getAvailableSlots(),
+        ];
+
+        return response()->json([
+            'quests' => $quests->items(),
+            'pagination' => [
+                'current_page' => $quests->currentPage(),
+                'last_page' => $quests->lastPage(),
+                'per_page' => $quests->perPage(),
+                'total' => $quests->total(),
+            ],
+            'wip_slots' => $wipSlots,
+        ]);
+    }
+
+    /**
+     * Claim a bounty quest
+     * POST /api/quests/{id}/claim
+     */
+    public function claimBounty(Request $request, $id)
+    {
+        $user = Auth::user();
+        $quest = Quest::findOrFail($id);
+
+        // Only bounty quests can be claimed
+        if ($quest->type !== Quest::TYPE_BOUNTY) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only bounty quests can be claimed',
+            ], 400);
+        }
+
+        // Check if quest is active
+        if (!$quest->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This quest is no longer available',
+            ], 400);
+        }
+
+        // Check if user already has an assignment for this quest
+        $existingAssignment = QuestAssignment::where('quest_id', $quest->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($existingAssignment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You already have an assignment for this quest',
+            ], 400);
+        }
+
+        // Check if quest is already taken by someone else
+        $takenAssignment = QuestAssignment::where('quest_id', $quest->id)
+            ->where('status', '!=', QuestAssignment::STATUS_CANCELLED)
+            ->first();
+
+        if ($takenAssignment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This quest has already been claimed',
+            ], 400);
+        }
+
+        // WIP Slot check
+        $slotWeight = Quest::getSlotWeight($quest->priority);
+        $availableSlots = $user->getAvailableSlots();
+
+        if ($availableSlots < $slotWeight) {
+            return response()->json([
+                'success' => false,
+                'message' => "Insufficient WIP slots. This quest requires {$slotWeight} slots, but you only have {$availableSlots} available.",
+                'required_slots' => $slotWeight,
+                'available_slots' => $availableSlots,
+            ], 400);
+        }
+
+        // Create assignment
+        $assignment = QuestAssignment::create([
+            'quest_id' => $quest->id,
+            'user_id' => $user->id,
+            'assigned_by' => $user->id,
+            'status' => QuestAssignment::STATUS_ASSIGNED,
+            'assigned_at' => now(),
+            'slot_consumed' => $slotWeight,
+        ]);
+
+        $assignment->load(['quest', 'assignedBy']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Quest claimed successfully',
+            'assignment' => $assignment,
+            'wip_slots' => [
+                'used' => $user->getUsedSlots(),
+                'max' => $user->getMaxSlotCapacity(),
+                'available' => $user->getAvailableSlots(),
+            ],
+        ], 201);
+    }
+
+    /**
      * Remove the specified quest
      * DELETE /api/quests/{id}
      * Admin only

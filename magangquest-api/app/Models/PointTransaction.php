@@ -40,6 +40,7 @@ class PointTransaction extends Model
     const REF_CANCEL_PENALTY = 'cancel_penalty';
     const REF_HOARDING_PENALTY = 'hoarding_penalty';
     const REF_LATE_PENALTY = 'late_penalty';
+    const REF_GRACE_PENALTY = 'grace_penalty';
     const REF_FORCE_CLOSE_PENALTY = 'force_close_penalty';
 
     // Relationships

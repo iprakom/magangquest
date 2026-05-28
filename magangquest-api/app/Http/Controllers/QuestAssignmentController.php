@@ -63,6 +63,16 @@ class QuestAssignmentController extends Controller
 
         $quest = Quest::findOrFail($validated['quest_id']);
 
+        // Check if user is in Critical Zone (H-10 to H-0 working days)
+        if ($user->isInCriticalZone()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak bisa klaim task baru saat Fase Krusial',
+                'critical_zone' => true,
+                'working_days_remaining' => $user->getWorkingDaysRemaining(),
+            ], 400);
+        }
+
         // Only bounty quests can be claimed by players
         if ($quest->type !== Quest::TYPE_BOUNTY) {
             return response()->json([

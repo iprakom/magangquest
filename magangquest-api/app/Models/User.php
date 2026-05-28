@@ -20,10 +20,14 @@ class User extends Authenticatable
         'onboarding_status',
         'google_id',
         'avatar',
+        'nip',
+        'unit_kerja',
         'intern_type',
         'start_date',
         'end_date',
         'document_path',
+        'room',
+        'mentor_id',
         'is_critical_zone',
         'is_grace_period',
         'grace_period_started_at',
@@ -158,7 +162,7 @@ class User extends Authenticatable
         return $lastTransaction?->balance_after ?? 0;
     }
 
-    // Days remaining
+    // Days remaining (calendar days)
     public function getDaysRemaining(): ?int
     {
         if (!$this->end_date) return null;
@@ -166,13 +170,93 @@ class User extends Authenticatable
         return max(0, now()->startOfDay()->diffInDays($this->end_date, false));
     }
 
+    // Working days remaining (excluding weekends and holidays)
+    public function getWorkingDaysRemaining(): ?int
+    {
+        if (!$this->end_date) return null;
+
+        $today = now()->startOfDay();
+        $endDate = $this->end_date->startOfDay();
+
+        // If end date is in the past, return negative
+        if ($endDate < $today) {
+            return -$this->countWorkingDaysPast($endDate, $today);
+        }
+
+        return $this->countWorkingDaysRemaining($today, $endDate);
+    }
+
+    protected function countWorkingDaysRemaining(\Carbon\Carbon $start, \Carbon\Carbon $end): int
+    {
+        $count = 0;
+        $current = $start->copy();
+        $current->addDay(); // Start from tomorrow
+
+        $holidays = \App\Models\Holiday::whereBetween('date', [$current->format('Y-m-d'), $end->format('Y-m-d')])
+            ->pluck('date')
+            ->map(fn($d) => $d->startOfDay()->timestamp)
+            ->toArray();
+
+        while ($current <= $end) {
+            $dayOfWeek = $current->dayOfWeek;
+            $currentTime = $current->timestamp;
+
+            // Weekday (1-5 = Monday-Friday)
+            $isWeekday = $dayOfWeek >= 1 && $dayOfWeek <= 5;
+            // Not a holiday
+            $isNotHoliday = !in_array($currentTime, $holidays);
+
+            if ($isWeekday && $isNotHoliday) {
+                $count++;
+            }
+            $current->addDay();
+        }
+
+        return $count;
+    }
+
+    protected function countWorkingDaysPast(\Carbon\Carbon $end, \Carbon\Carbon $today): int
+    {
+        $count = 0;
+        $current = $end->copy();
+        $current->addDay(); // Start from day after end
+
+        $holidays = \App\Models\Holiday::whereBetween('date', [$current->format('Y-m-d'), $today->format('Y-m-d')])
+            ->pluck('date')
+            ->map(fn($d) => $d->startOfDay()->timestamp)
+            ->toArray();
+
+        while ($current < $today) {
+            $dayOfWeek = $current->dayOfWeek;
+            $currentTime = $current->timestamp;
+
+            $isWeekday = $dayOfWeek >= 1 && $dayOfWeek <= 5;
+            $isNotHoliday = !in_array($currentTime, $holidays);
+
+            if ($isWeekday && $isNotHoliday) {
+                $count++;
+            }
+            $current->addDay();
+        }
+
+        return $count;
+    }
+
     public function isInCriticalZone(): bool
     {
-        $days = $this->getDaysRemaining();
-        if ($days === null) return false;
+        $workingDays = $this->getWorkingDaysRemaining();
+        if ($workingDays === null) return false;
 
         $criticalDays = SystemSetting::get('critical_zone_days', 10);
-        return $days <= $criticalDays && $days >= 0;
+        return $workingDays <= $criticalDays && $workingDays >= 0;
+    }
+
+    public function isInGraduationPhase(): bool
+    {
+        $workingDays = $this->getWorkingDaysRemaining();
+        if ($workingDays === null) return false;
+
+        return $workingDays <= 0;
     }
 
     public function isInGracePeriod(): bool

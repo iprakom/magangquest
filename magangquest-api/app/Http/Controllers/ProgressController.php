@@ -118,12 +118,17 @@ class ProgressController extends Controller
 
         $assignment->status = QuestAssignment::STATUS_IN_REVIEW;
         $assignment->submitted_at = now();
+        
+        // Calculate SLA deadline: 3 working days from submitted_at
+        $assignment->sla_deadline = \App\Console\Commands\AutoApproveQuests::calculateSlaDeadline(now());
+        
         $assignment->save();
 
         return response()->json([
             'success' => true,
             'message' => 'Quest submitted for review',
             'assignment' => $assignment,
+            'sla_deadline' => $assignment->sla_deadline,
         ]);
     }
 }

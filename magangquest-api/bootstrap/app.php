@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'check_onboarding' => \App\Http\Middleware\CheckOnboarding::class,
             'onboarding.active' => \App\Http\Middleware\EnsureOnboardingActive::class,
             'onboarding.pending' => \App\Http\Middleware\EnsureOnboardingPending::class,
+            'inertia' => \App\Http\Middleware\HandleInertiaRequests::class,
+        ]);
+        $middleware->web(prepend: [
+            \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

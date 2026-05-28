@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminOnboardingController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\QuestController;
 use App\Http\Controllers\QuestAssignmentController;
@@ -19,21 +20,25 @@ use Illuminate\Support\Facades\Route;
 // Onboarding API routes (require auth)
 Route::middleware(['auth'])->prefix('onboarding')->group(function () {
     Route::get('/status', [OnboardingController::class, 'checkStatus']);
+    Route::post('/submit', [OnboardingController::class, 'submitPersonalInfo']);
     Route::post('/upload', [OnboardingController::class, 'uploadDocuments']);
-    Route::post('/submit', [OnboardingController::class, 'submitForValidation']);
+    Route::post('/validate', [OnboardingController::class, 'submitForValidation']);
 });
 
 // Admin-only onboarding routes
 Route::middleware(['auth', 'check_onboarding'])->prefix('admin')->group(function () {
-    Route::get('/onboarding/pending', [OnboardingController::class, 'getPendingUsers']);
-    Route::post('/onboarding/{userId}/approve', [OnboardingController::class, 'approveUser']);
-    Route::post('/onboarding/{userId}/reject', [OnboardingController::class, 'rejectUser']);
+    Route::get('/onboarding/pending', [AdminOnboardingController::class, 'getPendingUsers']);
+    Route::get('/onboarding/all', [AdminOnboardingController::class, 'getAllUsers']);
+    Route::post('/onboarding/{userId}/approve', [AdminOnboardingController::class, 'approveUser']);
+    Route::post('/onboarding/{userId}/reject', [AdminOnboardingController::class, 'rejectUser']);
 });
 
 // Quest API routes (require auth + active onboarding)
 Route::middleware(['auth', 'check_onboarding'])->prefix('quests')->group(function () {
     Route::get('/', [QuestController::class, 'index']);
+    Route::get('/bounty', [QuestController::class, 'bountyList']);
     Route::get('/{id}', [QuestController::class, 'show']);
+    Route::post('/{id}/claim', [QuestController::class, 'claimBounty']);
 });
 
 Route::middleware(['auth', 'check_onboarding'])->prefix('quest-assignments')->group(function () {
@@ -51,6 +56,9 @@ Route::middleware(['auth', 'check_onboarding'])->prefix('admin')->group(function
     Route::delete('/quests/{id}', [QuestController::class, 'destroy']);
     Route::post('/quest-assignments', [QuestAssignmentController::class, 'store']);
     Route::put('/quest-assignments/{id}/status', [QuestAssignmentController::class, 'updateStatus']);
+    Route::get('/leaderboard', [LeaderboardController::class, 'adminIndex']);
+    Route::get('/leaderboard/export', [LeaderboardController::class, 'adminExportCsv']);
+    Route::get('/stats', [LeaderboardController::class, 'adminStats']);
 });
 
 // Holiday management routes (public for working day calculations, admin for CRUD)
@@ -69,7 +77,6 @@ Route::middleware(['auth', 'check_onboarding'])->prefix('admin')->group(function
     Route::get('/settings/{key}', [SystemSettingController::class, 'show']);
     Route::put('/settings/{key}', [SystemSettingController::class, 'update']);
     Route::get('/settings/audit', [SystemSettingController::class, 'audit']);
-    Route::get('/statistics', [LeaderboardController::class, 'statistics']);
 });
 
 // Leaderboard routes
@@ -82,6 +89,8 @@ Route::middleware(['auth', 'check_onboarding'])->prefix('leaderboard')->group(fu
 Route::middleware(['auth', 'check_onboarding'])->prefix('mentor')->group(function () {
     Route::get('/idle-dashboard', [MentorController::class, 'idleDashboard']);
     Route::post('/assign', [MentorController::class, 'assignQuest']);
+    Route::post('/quests', [MentorController::class, 'storeQuest']);
+    Route::get('/interns', [MentorController::class, 'getInterns']);
     Route::get('/pending-validations', [MentorController::class, 'pendingValidations']);
     Route::put('/assignments/{id}/override-sla', [MentorController::class, 'overrideSla']);
     Route::put('/assignments/{id}/validate', [MentorController::class, 'validateAssignment']);

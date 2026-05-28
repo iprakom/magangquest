@@ -24,6 +24,15 @@ class OnboardingController extends Controller
             'can_submit' => !empty($user->document_path) && $user->onboarding_status === User::ONBOARDING_RESTRICTED,
             'can_upload' => $user->onboarding_status === User::ONBOARDING_RESTRICTED || $user->onboarding_status === User::ONBOARDING_PENDING,
             'is_active' => $user->isActive(),
+            'user' => [
+                'name' => $user->name,
+                'nip' => $user->nip,
+                'unit_kerja' => $user->unit_kerja,
+                'start_date' => $user->start_date?->format('Y-m-d'),
+                'end_date' => $user->end_date?->format('Y-m-d'),
+                'room' => $user->room,
+                'intern_type' => $user->intern_type,
+            ],
         ]);
     }
 
@@ -65,6 +74,46 @@ class OnboardingController extends Controller
             'success' => true,
             'message' => 'Document uploaded successfully',
             'document_path' => $path,
+        ]);
+    }
+
+    /**
+     * Submit personal information
+     */
+    public function submitPersonalInfo(Request $request)
+    {
+        $user = Auth::user();
+
+        // Check if user can submit personal info
+        if (!in_array($user->onboarding_status, [User::ONBOARDING_RESTRICTED, User::ONBOARDING_PENDING])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You cannot submit personal info at this stage',
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'nip' => 'nullable|string|max:50',
+            'unit_kerja' => 'nullable|string|max:100',
+            'start_date' => 'required|date|after_or_equal:today',
+            'end_date' => 'required|date|after:start_date',
+            'room' => 'nullable|string|max:100',
+            'intern_type' => 'required|in:sma_smk,mahasiswa,profesional',
+        ]);
+
+        $user->name = $validated['name'];
+        $user->nip = $validated['nip'] ?? null;
+        $user->unit_kerja = $validated['unit_kerja'] ?? null;
+        $user->start_date = $validated['start_date'];
+        $user->end_date = $validated['end_date'];
+        $user->room = $validated['room'] ?? null;
+        $user->intern_type = $validated['intern_type'];
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Personal information saved successfully',
         ]);
     }
 
@@ -133,7 +182,7 @@ class OnboardingController extends Controller
         $user->save();
 
         // Grant onboarding bonus points
-        $bonusPoints = SystemSetting::get('onboarding_bonus_points', 100);
+        $bonusPoints = SystemSetting::get('onboarding_bonus_points', 50);
         PointTransaction::createTransaction(
             $user->id,
             $bonusPoints,
