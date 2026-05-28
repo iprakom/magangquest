@@ -45,8 +45,8 @@ class ProgressController extends Controller
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        // Only allow progress on active assignments
-        if (!in_array($assignment->status, [QuestAssignment::STATUS_ACTIVE, QuestAssignment::STATUS_IN_REVIEW])) {
+        // Only allow progress on active or assigned assignments
+        if (!in_array($assignment->status, [QuestAssignment::STATUS_ASSIGNED, QuestAssignment::STATUS_ACTIVE, QuestAssignment::STATUS_IN_REVIEW])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cannot add progress to this quest assignment',
@@ -77,6 +77,11 @@ class ProgressController extends Controller
             'evidence_filename' => $evidenceFilename,
             'points_earned' => 10,
         ]);
+
+        // Auto-transition from assigned to active if needed
+        if ($assignment->status === QuestAssignment::STATUS_ASSIGNED) {
+            $assignment->update(['status' => QuestAssignment::STATUS_ACTIVE]);
+        }
 
         // Award points for progress
         PointTransaction::createTransaction(
