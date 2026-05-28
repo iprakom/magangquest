@@ -302,6 +302,54 @@ magangquest-api/
 └── .env                        # Environment file
 ```
 
+## Pages & Routes
+
+### Public Routes
+| Route | Page | Description |
+|-------|------|-------------|
+| `/` | Welcome.vue | Landing page (framework info) |
+| `/login` | Login.vue | Google SSO login page |
+
+### User Onboarding (Auth + Pending Status)
+| Route | Page | Description |
+|-------|------|-------------|
+| `/onboarding` | Onboarding.vue | Form data diri, NIP, unit kerja, tanggal magang |
+| `/onboarding/upload` | OnboardingUpload.vue | Upload dokumen legalitas |
+
+### Player Routes (Auth + Active Onboarding)
+| Route | Page | Description |
+|-------|------|-------------|
+| `/dashboard` | Dashboard.vue | Nyawa countdown, stats, endgame warnings |
+| `/quests` | Quest/Index.vue | Browse & claim bounty quests |
+| `/quest-logbook` | QuestLogbook.vue | Active quests, WIP slots, submit progress |
+
+### Mentor Routes (Auth + Active Onboarding + Mentor Role)
+| Route | Page | Description |
+|-------|------|-------------|
+| `/mentor/dashboard` | MentorDashboard.vue | Idle intern monitoring per room |
+| `/mentor/quests/create` | MentorCreateQuest.vue | Create bounty/assigned quest |
+| `/mentor/review` | MentorReview.vue | Approve/reject submitted quests (SLA) |
+
+### Admin Routes (Auth + Active Onboarding + Admin Role)
+| Route | Page | Description |
+|-------|------|-------------|
+| `/admin/onboarding` | AdminOnboarding.vue | Validate/reject intern registrations |
+| `/admin/holidays` | AdminHolidayCalendar.vue | CRUD hari libur |
+| `/admin/settings` | AdminSettings.vue | Global Limit & audit trail |
+| `/admin/leaderboard` | AdminLeaderboard.vue | Leaderboard stats + CSV export |
+
+### Shared Routes (Auth + Active Onboarding)
+| Route | Page | Description |
+|-------|------|-------------|
+| `/leaderboard` | Leaderboard.vue | Public leaderboard + podium |
+| `/profile` | Profile.vue | User profile & settings |
+
+### Authentication
+| Route | Description |
+|-------|-------------|
+| `/auth/google` | Redirect to Google OAuth |
+| `/auth/google/callback` | Google OAuth callback |
+
 ## License
 
 MIT License
